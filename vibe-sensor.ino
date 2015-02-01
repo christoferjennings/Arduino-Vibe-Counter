@@ -136,16 +136,18 @@
 #include <LiquidCrystal.h>
 
 // these constants won't change:
-const boolean debug = true;
+const boolean debug = false;
 const int ledPin = 13;      // led connected to digital pin 13
 const int knockSensor = A0; // the piezo is connected to analog pin 0
 const int threshold = 5;   // threshold value to decide when the detected sound is a knock or not
+const unsigned long initTime = millis();   // used in calculation of elapsed time
 
 // these variables will change:
 int sensorReading = 0;      // variable to store the value read from the sensor pin
 int ledState = LOW;         // variable used to store the last LED status, to toggle the light
 int readCount = 0;
 int vibeCount = 0;
+long lastReadTime = 0;   // used in calculation of elapsed time
 
 // Initialize the library with the pins we're using.
 // (Note that you can use different pins if needed.)
@@ -165,7 +167,11 @@ void lcd_setup()
 
   lcd.clear();
 
+  lcd.setCursor(0,0);
   lcd.print("Vibrations:");
+  
+  lcd.setCursor(0,1);
+  lcd.print("Time:");
 
   // Adjusting the contrast (IMPORTANT!)
   
@@ -182,8 +188,8 @@ void lcd_setup()
 }
 
 void setup() {
-  lcd_setup();
   knock_setup();
+  lcd_setup();
   Serial.println("Readings...");
 }
 
@@ -203,24 +209,30 @@ void knock_loop() {
     delay(50);
   }
 
-  // if the sensor reading is greater than the threshold:
+  // if the sensor reading is greater than the threshold, 
+  // and there's a bit of delay so we don't read single 
+  // iPhone vibes as multiple:
   if (sensorReading >= threshold) {
+    if (millis() - lastReadTime > 2500) {
+      
+      // update vibe count
+      vibeCount++;  
     
-    // update vibe count
-    vibeCount++;  
+      // toggle the status of the ledPin:
+      ledState = !ledState;   
+      // update the LED pin itself:        
+      digitalWrite(ledPin, ledState);
   
-    // toggle the status of the ledPin:
-    ledState = !ledState;   
-    // update the LED pin itself:        
-    digitalWrite(ledPin, ledState);
-
-    // show useful stuff on the computer
-    Serial.println();
-    Serial.print("Over Threashold: ");
-    Serial.println(sensorReading);
-    Serial.println("Readings...");
-    // delay so serial not overloaded
-    delay(50);
+      // show useful stuff on the computer
+      Serial.println();
+      Serial.print("Over Threashold: ");
+      Serial.println(sensorReading);
+      Serial.println("Readings...");
+      // delay so serial not overloaded
+      delay(50);
+    }
+    // update last read time
+    lastReadTime = millis();
   }
 }
 
@@ -229,9 +241,29 @@ void lcd_loop() {
   lcd.setCursor(12,0);
   lcd.print(vibeCount);
 
+  // display elapsed time
+  lcd.setCursor(6,1);
+  lcd.print(time());
+  delay(50);
+}
 
+String time() {
+  unsigned long m = millis() - initTime;
+  unsigned long secs = (m / 1000) % 60;
+  unsigned long mins = (m / 1000 / 60) % 60;
+  unsigned long hrs  = (m / 1000 / 60 / 60);
 
+  String secsStr = String() + secs;
+  if (secs < 10) {
+     secsStr = String("0") + secs;
+  }
   
+  String minsStr = String() + mins;
+  if (mins < 10) {
+     minsStr = String("0") + mins;
+  }
+  
+  return String() + hrs + ":" + minsStr + ":" + secsStr;
 }
 
 void loop() {
