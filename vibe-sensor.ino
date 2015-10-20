@@ -182,7 +182,7 @@ void lcd_setup()
   // need to change it again.
 
   // Run the sketch, then turn the potentiometer until you can
-  // clearly see the "hello, world!" text. If you still can't
+  // clearly see the text. If you still can't
   // see anything, check all of your connections, and ensure that
   // the sketch was successfully uploaded to the Arduino.
 }
